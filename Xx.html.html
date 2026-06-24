@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B1 Vocabulary Builder</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f2f1ed;
+            color: #2c302e;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            color: #1a1c1b;
+        }
+
+        .desc {
+            color: #707571;
+            margin-bottom: 30px;
+            font-size: 13px;
+            text-align: center;
+            line-height: 1.6;
+            max-width: 300px;
+        }
+
+        .card-container {
+            width: 320px;
+            height: 340px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+            transition: transform 0.4s, left 0.3s, top 0.3s, opacity 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border-radius: 12px;
+            cursor: pointer;
+            left: 0;
+            top: 0;
+        }
+
+        .card.flipped {
+            transform: rotateX(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            padding: 30px 24px;
+            box-sizing: border-box;
+            text-align: center;
+            border: 1px solid #e1dfda;
+        }
+
+        .card-front {
+            background-color: #ffffff;
+            color: #2c302e;
+        }
+
+        .card-back {
+            background-color: #faf9f5;
+            color: #2c302e;
+            transform: rotateX(180deg);
+        }
+
+        .word {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .pos {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8a8f8b;
+            background: #f5f4f0;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .translation {
+            font-size: 18px;
+            font-weight: 500;
+            color: #384d42;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e1dfda;
+            padding-bottom: 14px;
+            width: 100%;
+        }
+
+        .example-box {
+            font-size: 13px;
+            color: #555a56;
+            line-height: 1.5;
+            text-align: left;
+            width: 100%;
+            background: #f5f4f0;
+            padding: 12px;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .ex-en {
+            font-style: italic;
+            margin-bottom: 6px;
+            color: #1a1c1b;
+        }
+
+        .ex-mn {
+            color: #6e7370;
+        }
+
+        .stats {
+            margin-top: 35px;
+            font-size: 13px;
+            color: #8a8f8b;
+            letter-spacing: 0.5px;
+        }
+
+        .action-hint {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 6px 14px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 10;
+        }
+        .hint-know { right: -10px; top: -35px; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .hint-not { left: -10px; top: -35px; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+        .hint-reveal { left: 50%; transform: translateX(-50%); bottom: -35px; background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+    </style>
+</head>
+<body>
+
+    <h1>B1 Vocabulary</h1>
+    <div class="desc">Дээшээ шударвал орчуулга болон жишээ гарна. Баруун тийш шударвал мэднэ, зүүн тийш шударвал мэдэхгүй.</div>
+
+    <div class="card-container">
+        <div class="action-hint hint-know">Мэднэ</div>
+        <div class="action-hint hint-not">Мэдэхгүй</div>
+        <div class="action-hint hint-reveal">Орчуулга</div>
+        
+        <div class="card" id="card">
+            <div class="card-face card-front">
+                <div class="word" id="word-en">Loading...</div>
+                <div class="pos" id="word-pos">verb</div>
+            </div>
+            <div class="card-face card-back">
+                <div class="translation" id="word-mn">Уншиж байна...</div>
+                <div class="example-box">
+                    <div class="ex-en" id="ex-en">Loading example...</div>
+                    <div class="ex-mn" id="ex-mn">Жишээ уншиж байна...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats" id="stats">Remaining: 100</div>
+
+    <script>
+        let wordList = [
+            { en: "admit", mn: "Хүлээх, зөвшөөрөх", pos: "verb", exEn: "He admitted that he made a mistake.", exMn: "Тэр алдаа гаргаснаа хүлээн зөвшөөрсөн." },
+            { en: "agree", mn: "Санал нэгдэх, зөвшөөрөх", pos: "verb", exEn: "I agree with your opinion on this matter.", exMn: "Энэ асуудал дээр би чиний саналтай нэгдэж байна." },
+            { en: "announce", mn: "Зарлах, мэдэгдэх", pos: "verb", exEn: "The company will announce the results tomorrow.", exMn: "Компани маргааш үр дүнгээ зарлана." },
+            { en: "apologize", mn: "Уучлалт гуйх", pos: "verb", exEn: "You should apologize for being late.", exMn: "Чи хоцорсондоо уучлалт гуйх хэрэгтэй." },
+            { en: "argue", mn: "Маргалдах, мэтгэлцэх", pos: "verb", exEn: "They always argue about money.", exMn: "Тэд үргэлж мөнгөнөөс болж маргалддаг." },
+            { en: "blame", mn: "Буруутгах", pos: "verb", exEn: "Don't blame others for your own failure.", exMn: "Өөрийнхөө бүтэлгүйтэлд бусдыг бүү буруутга." },
+            { en: "complain", mn: "Гомдоллох", pos: "verb", exEn: "Customers complain about the poor service.", exMn: "Үйлчлүүлэгчид чанаргүй үйлчилгээний талаар гомдоллодог." },
+            { en: "confirm", mn: "Баталгаажуулах", pos: "verb", exEn: "Please confirm your flight reservation.", exMn: "Нислэгийн захиалгаа баталгаажуулна уу." },
+            { en: "convince", mn: "Үнэмшүүлэх, ятгах", pos: "verb", exEn: "I managed to convince him to join us.", exMn: "Би түүнийг бидэнтэй нэгдэхийг ятгаж чадсан." },
+            { en: "deny", mn: "Үгүйсгэх", pos: "verb", exEn: "The suspect denied stealing the car.", exMn: "Сэжигтэн машин хулгайлснаа үгүйсгэсэн." }
+        ];
+
+        let currentIndex = 0;
+        let isFlipped = false;
+        const card = document.getElementById('card');
+        const hintKnow = document.querySelector('.hint-know');
+        const hintNot = document.querySelector('.hint-not');
+        const hintReveal = document.querySelector('.hint-reveal');
+
+        function showWord() {
+            isFlipped = false;
+            card.classList.remove('flipped');
+            card.style.left = "0px";
+            card.style.top = "0px";
+            card.style.opacity = "1";
+            
+            if (wordList.length === 0) {
+                document.getElementById('word-en').innerText = "Finished";
+                document.getElementById('word-pos').style.display = "none";
+                document.getElementById('word-mn').innerText = "Дууслаа";
+                document.getElementById('ex-en').innerText = "All words completed.";
+                document.getElementById('ex-mn').innerText = "Бүх үгийг цээжилж дуусав.";
+                document.getElementById('stats').innerText = "Remaining: 0";
+                return;
+            }
+            if (currentIndex >= wordList.length) currentIndex = 0;
+            
+            setTimeout(() => {
+                document.getElementById('word-en').innerText = wordList[currentIndex].en;
+                document.getElementById('word-pos').innerText = wordList[currentIndex].pos;
+                document.getElementById('word-mn').innerText = wordList[currentIndex].mn;
+                document.getElementById('ex-en').innerText = wordList[currentIndex].exEn;
+                document.getElementById('ex-mn').innerText = wordList[currentIndex].exMn;
+                document.getElementById('stats').innerText = `Remaining: ${wordList.length}`;
+            }, 150);
+        }
+
+        let startX = 0, startY = 0;
+        let currentX = 0, currentY = 0;
+        let isSwiping = false;
+
+        card.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            isSwiping = true;
+            card.style.transition = "none";
+        });
+
+        card.addEventListener('touchmove', (e) => {
+            if (!isSwiping) return;
+            currentX = e.touches[0].clientX;
+            currentY = e.touches[0].clientY;
+            
+            let diffX = currentX - startX;
+            let diffY = currentY - startY;
+            
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Хэвтээ тэнхлэгийн шудралт (Баруун / Зүүн)
+                card.style.left = diffX + "px";
+                card.style.top = "0px";
+                if (diffX > 60) {
+                    hintKnow.style.opacity = "1";
+                    hintNot.style.opacity = "0";
+                    hintReveal.style.opacity = "0";
+                } else if (diffX < -60) {
+                    hintNot.style.opacity = "1";
+                    hintKnow.style.opacity = "0";
+                    hintReveal.style.opacity = "0";
+                } else {
+                    hintKnow.style.opacity = "0";
+                    hintNot.style.opacity = "0";
+                }
+            } else {
+                // Босоо тэнхлэгийн шудралт (Зөвхөн дээшээ)
+                if (diffY < 0) {
+                    card.style.top = diffY + "px";
+                    card.style.left = "0px";
+                    if (diffY < -50 && !isFlipped) {
+                        hintReveal.style.opacity = "1";
+                        hintKnow.style.opacity = "0";
+                        hintNot.style.opacity = "0";
+                    }
+                }
+            }
+        });
+
+        card.addEventListener('touchend', (e) => {
+            if (!isSwiping) return;
+            isSwiping = false;
+            card.style.transition = "transform 0.4s, left 0.3s, top 0.3s, opacity 0.3s";
+            hintKnow.style.opacity = "0";
+            hintNot.style.opacity = "0";
+            hintReveal.style.opacity = "0";
+
+            let diffX = currentX - startX;
+            let diffY = currentY - startY;
+
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > 100) {
+                    // БАРУУН: Мэднэ
+                    card.style.left = "400px";
+                    card.style.opacity = "0";
+                    setTimeout(() => {
+                        wordList.splice(currentIndex, 1);
+                        showWord();
+                    }, 200);
+                } else if (diffX < -100) {
+                    // ЗҮҮН: Мэдэхгүй
+                    card.style.left = "-400px";
+                    card.style.opacity = "0";
+                    setTimeout(() => {
+                        currentIndex++;
+                        showWord();
+                    }, 200);
+                } else {
+                    card.style.left = "0px";
+                }
+            } else {
+                if (diffY < -80) {
+                    // ДЭЭШЭЭ: Орчуулга харах
+                    isFlipped = true;
+                    card.classList.add('flipped');
+                    card.style.top = "0px";
+                } else {
+                    card.style.top = "0px";
+                }
+            }
+            startX = 0; startY = 0;
+            currentX = 0; currentY = 0;
+        });
+
+        showWord();
+    </script>
+</body>
+</html>
